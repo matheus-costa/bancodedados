@@ -1,0 +1,105 @@
+create table cargo (id serial primary key, nome text, salario numeric);
+create table departamento (id serial primary key, nome text);
+create table servidor (id serial primary key, nome text, departamento integer references departamento (id), cargo integer references cargo (id));
+
+create table disciplina (id serial primary key, nome text);
+create table oferta (id serial primary key, nome text, disciplina integer references disciplina (id), professor integer references servidor (id));
+
+create table aluno (id serial primary key, nome text, cpf text);
+create table matricula (id serial primary key, oferta integer references oferta (id), aluno integer references aluno (id), conceito text check ( conceito in ('APROVADO', 'REPROVADO') ) );
+
+insert into aluno values (default, 'Francisco Taylor', '12345678910');
+insert into aluno values (default, 'Matheus Fonseca', '12345678911');
+
+select * from aluno where id = '2';
+
+insert into departamento values (default, 'TI'); --1
+insert into departamento values (default, 'DEPEX'); --2
+insert into cargo values (default, 'Docente'); --1
+insert into cargo values (default, 'TA'); --2
+
+select * from departamento;
+select * from cargo;
+
+update cargo set salario = '10000' where id = '1';
+update cargo set salario = '5000' where id = '2';
+
+select * from cargo;
+
+insert into servidor values (default, 'Bruno Valério', '1', '2');
+insert into servidor values (default, 'Gabriel', '2', '2');
+insert into servidor values (default, 'Lucas', '1', '2');
+
+select *
+from servidor s
+    join departamento d on s.departamento = d.id;
+	
+select d.nome dnome, count(s.id)
+from servidor s
+join departamento d
+     on d.id = s.departamento
+group by d.nome;
+
+select id,nome,
+      (select count(*) from servidor 
+	   where departamento = d.id)
+from departamento d;
+
+--1. Declare uma visualização que apresente os departamentos que têm apenas 1 servidor alocado.
+select count(s.id)
+from servidor s
+     join departamento d on d.id = s.departamento
+where s.id = 1
+group by s.id;
+
+--2. Declare uma visualização que apresente os servidores cujos salários são iguais ao maior salário da organização.
+select max(c.salario) as maiorsal
+from servidor s
+     join cargo c on c.id = s.cargo
+where (c.salario = maiorsal)
+group by maiorsal;
+
+--3. Declare uma visualização que apresente os servidores cujos salários são os maiores salários dos respectivos departamentos.
+create view visu03 as 
+select 	s.id sid,
+		s.nome snome, 
+		c.nome cnome,
+		d.nome dnome,
+		c.salario salario
+from servidor s
+join cargo c
+	on s.cargo = c.id
+join departamento d
+	on s.departamento = d.id
+where c.nome = 'Analista de Sistemas'
+and d.nome = 'DEPEX'
+and c.salario >= 
+	(	select avg(c.salario) 
+	 	from cargo c 
+		join servidor s 
+			on s.cargo = c.id
+	 	join departamento d
+	 		on s.departamento = d.id
+	 	where d.nome = 'DEPEX'
+	)
+or ( select count(*) from servidor where departamento = '3' ) = 1;
+	
+update cargo set salario = '8000' where id = '3';
+select * from cargo;
+
+select * from visu03;
+
+
+
+--4. Declare uma visualização materializada para apresentar os totais de valores destinados 
+--à folha de pagamento por setor da organização. 
+create view visu04 as 
+select id, nome from cargo;
+
+select * from visu04;
+
+insert into visu01 values (100, 'João', 'DEPEX', 'Prog. Jr.');
+insert into visu04 values ('100', 'Prog. Jr.');
+select * from cargo;
+
+select * from servidor limit 2;
